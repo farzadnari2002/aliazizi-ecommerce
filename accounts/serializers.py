@@ -11,7 +11,7 @@ class PhoneNumberField(serializers.CharField):
     ]
 
 
-class RequestOTP(serializers.ModelSerializer):
+class RequestOTP(serializers.Serializer):
     number = PhoneNumberField(max_length=12)
 
 
