@@ -1,6 +1,8 @@
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
+from accounts.models import UserProfile
+
 
 class PhoneNumberField(serializers.CharField):
     default_validators = [
@@ -23,3 +25,10 @@ class VerifyOTPRequestSerializer(serializers.Serializer):
 class EmailLoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True)
+
+
+class UpdateUserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = '__all__'
+        read_only_fields = ['user']
