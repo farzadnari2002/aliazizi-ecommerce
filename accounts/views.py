@@ -3,11 +3,12 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import viewsets, permissions
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import User
+from .models import User, UserProfile
 from .otp import generate_otp, verify_otp, delete_otp
-from .serializers import RequestOTP, VerifyOTPRequestSerializer, EmailLoginSerializer
+from .serializers import RequestOTP, VerifyOTPRequestSerializer, EmailLoginSerializer, UpdateUserProfileSerializer
 
 
 class GenerateOTPView(APIView):
@@ -130,3 +131,21 @@ class EmailLoginView(APIView):
             'access': str(refresh.access_token),
             'created': created
         }
+
+
+class UserProfileView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UpdateUserProfileSerializer
+
+    def patch(self, request):
+        user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+        serializer = self.serializer_class(user_profile, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                serializer.data,
+                status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
