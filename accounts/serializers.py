@@ -13,7 +13,7 @@ class PhoneNumberField(serializers.CharField):
     ]
 
 
-class RequestOTP(serializers.Serializer):
+class RequestOTPSerializer(serializers.Serializer):
     number = PhoneNumberField(max_length=13)
 
 
@@ -52,6 +52,3 @@ class SetNewPasswordSerializer(serializers.Serializer):
 class SetEmailSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
-
-class ChangeNumberSerializer(serializers.Serializer):
-    number = PhoneNumberField(max_length=13)
