@@ -3,19 +3,19 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import viewsets, permissions
+from rest_framework import permissions
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User, UserProfile
 from .otp import generate_otp, verify_otp, delete_otp
-from .serializers import RequestOTP, VerifyOTPRequestSerializer, EmailLoginSerializer, UpdateUserProfileSerializer
+from .serializers import *
 
 
 class GenerateOTPView(APIView):
-    serializer_class = RequestOTP
+    serializer_class = RequestOTPSerializer
 
     @extend_schema(
-        request=RequestOTP,
+        request=RequestOTPSerializer,
         responses={
             200: {'description': 'OTP sent successfully'},
             201: {'description': 'User created and OTP sent'},
@@ -34,6 +34,7 @@ class GenerateOTPView(APIView):
             data = serializer.validated_data
             user, created = User.objects.get_or_create(number=data['number'])
 
+            delete_otp(user.id)
             otp = generate_otp(user.id)
 
             print(f'Your OTP is: {otp}')
@@ -50,7 +51,7 @@ class VerifyOTPView(APIView):
     serializer_class = VerifyOTPRequestSerializer
 
     @extend_schema(
-        request=RequestOTP,
+        request=VerifyOTPRequestSerializer,
         responses={
             200: {'description': 'Login successful', 'examples': {'application/json': {'message': 'Login successful'}}},
             401: {'description': 'Invalid OTP'},
@@ -70,6 +71,8 @@ class VerifyOTPView(APIView):
             user = get_object_or_404(User, number=data['number'])
 
             if verify_otp(user.id, data['otp']):
+                user.is_active = True
+                user.save()
                 delete_otp(user.id)
                 return Response(data=self._handle_login(data['number']), status=status.HTTP_200_OK)
             else:
@@ -108,32 +111,51 @@ class EmailLoginView(APIView):
 
             if user.check_password(data['password']):
                 delete_otp(user.id)
-                return Response(data=self._handle_login(data['email']), status=status.HTTP_200_OK)
+                return Response(data=self._handle_login(user), status=status.HTTP_200_OK)
             else:
                 return Response(status=status.HTTP_401_UNAUTHORIZED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def _handle_login(self, email):
-        user = User.objects.filter(email=email).first()
-
-        if user is None:
-            user = User(email=email)
-            user.save()
-            created = True
-        else:
-            created = False
-
+    def _handle_login(self, user):
         refresh = RefreshToken.for_user(user)
 
         return {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
-            'created': created
+            'created': False
         }
 
 
-class UserProfileView(APIView):
+class NumberLoginView(APIView):
+    serializer_class = NumberLoginSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+
+        if serializer.is_valid():
+            data = serializer.validated_data
+            user = get_object_or_404(User, number=data['number'])
+
+            if user.check_password(data['password']):
+                delete_otp(user.id)
+                return Response(data=self._handle_login(user), status=status.HTTP_200_OK)
+            else:
+                return Response(status=status.HTTP_401_UNAUTHORIZED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def _handle_login(self, user):
+        refresh = RefreshToken.for_user(user)
+
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'created': False
+        }
+
+
+class UpdateUserProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UpdateUserProfileSerializer
 
@@ -149,3 +171,62 @@ class UserProfileView(APIView):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SetNewPasswordView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = SetNewPasswordSerializer
+
+    def patch(self, request):
+        user=request.user
+        serializer = self.serializer_class(data=request.data, partial=True)
+
+        if serializer.is_valid():
+            data = serializer.validated_data
+
+            user.set_password(data['password'])
+            user.save()
+
+            return Response({"detail": "Password updated successfully."}, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SetEmailView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = SetEmailSerializer
+
+    def patch(self, request):
+        user=request.user
+        serializer = self.serializer_class(user, data=request.data, partial=True)
+
+        if user.email is None and serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ChangeNumberView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = RequestOTPSerializer
+
+    def post(self, request):
+        user=request.user
+        serializer = self.serializer_class(data=request.data)
+
+        if serializer.is_valid():
+            data = serializer.validated_data
+
+            if user.number != data['number']:
+
+                user.number = data['number']
+                user.save()
+
+                delete_otp(user.id)
+                otp = generate_otp(user.id)
+                print(f'Your OTP is: {otp}')
+                
+                return Response({"detail": "OTP sent successfully."}, status=status.HTTP_200_OK)
+
+            return Response({"detail": "New number must be different from the current number."}, status=status.HTTP_200_OK)
+
