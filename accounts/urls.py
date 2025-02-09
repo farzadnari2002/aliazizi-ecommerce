@@ -1,15 +1,26 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from . import views
+from .views import auth_views, password_views, user_update_views
 
 urlpatterns = [
-    path('request/', views.GenerateOTPView.as_view(), name='request-otp'),
-    path('verify-otp/', views.VerifyOTPView.as_view(), name='verify-otp'),
-    path('email-login/', views.EmailLoginView.as_view(), name='email-login'),
-    path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('user-profile/', views.UpdateUserProfileView.as_view(), name='user-profile'),
-    path('set-new-password/', views.SetNewPasswordView.as_view(), name='set-new-password'),
-    path('set-email/', views.SetEmailView.as_view(), name='set-email'),
-    path('change-number/', views.ChangeNumberView.as_view(), name='change-number'),
+    # Authentication endpoints
+    path('auth/otp/request/', auth_views.GenerateOTPView.as_view(), name='request-otp'),
+    path('auth/otp/verify/', auth_views.VerifyOTPView.as_view(), name='verify-otp'),
+    path('auth/login/email/', auth_views.EmailLoginView.as_view(), name='email-login'),
+    path('auth/login/number/', auth_views.NumberLoginView.as_view(), name='number-login'),
+
+    # User profile management
+    path('user/profile/', user_update_views.UpdateUserProfileView.as_view(), name='user-profile'),
+    path('user/email/update/', user_update_views.SetEmailView.as_view(), name='set-email'),
+    path('user/phone/change/request/', user_update_views.ChangeNumberRequestView.as_view(), name='change-number-request'),
+    path('user/phone/change/verify/', user_update_views.ChangeNumberVerifyView.as_view(), name='change-number-verify'),
+
+    # Password management
+    path('password/reset/request/', password_views.SetNewPasswordRequestView.as_view(), name='set-new-password-request'),
+    path('password/reset/verify/', password_views.SetNewPasswordVerifyView.as_view(), name='set-new-password-verify'),
+    path('password/change/', password_views.ChangePasswordView.as_view(), name='change-password'),
+
+    # Token management
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
