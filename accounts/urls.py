@@ -17,8 +17,8 @@ urlpatterns = [
     path('user/phone/change/verify/', user_update_views.ChangeNumberVerifyView.as_view(), name='change-number-verify'),
 
     # Password management
-    path('password/reset/request/', password_views.SetNewPasswordRequestView.as_view(), name='set-new-password-request'),
-    path('password/reset/verify/', password_views.SetNewPasswordVerifyView.as_view(), name='set-new-password-verify'),
+    path('password/reset/request/', password_views.ForgotPasswordRequestView.as_view(), name='forgot-password-request'),
+    path('password/reset/verify/', password_views.ForgotPasswordVerifyView.as_view(), name='forgot-password-verify'),
     path('password/change/', password_views.ChangePasswordView.as_view(), name='change-password'),
 
     # Token management
