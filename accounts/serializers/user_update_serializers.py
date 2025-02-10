@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from accounts.models import UserProfile
+from accounts.models import UserProfile, User
 
 
 class UpdateUserProfileSerializer(serializers.ModelSerializer):
@@ -9,5 +9,7 @@ class UpdateUserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ['user']
 
 
-class SetEmailSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
+class SetEmailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['email',]
