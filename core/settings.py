@@ -41,7 +41,12 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework_simplejwt',
-    'drf_spectacular'
+    'drf_spectacular',
+
+    'taggit',
+    'mptt',
+    'colorfield',
+    'autoslug',
 ]
 
 MIDDLEWARE = [
