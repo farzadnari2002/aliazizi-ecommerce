@@ -2,8 +2,14 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils.translation.trans_null import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
-
+from imagekit.models import ImageSpecField
+from imagekit.processors import ResizeToFill
 from .managers import UserManager
+from utils.validators import validate_image_dimensions, validate_image_size
+
+
+def get_upload_to(instance, filename):
+        return f'users/avatar/{instance}/{filename}'
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -57,7 +63,11 @@ class UserProfile(models.Model):
         other = 'O', _('Other')
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='profile_pics', blank=True, null=True)
+    avatar = models.ImageField(upload_to=get_upload_to, validators=[validate_image_size, validate_image_dimensions])
+    avatar_thumbnail = ImageSpecField(source='avatar',
+                                      processors=[ResizeToFill(100, 100)],
+                                      format='JPEG',
+                                      options={'quality': 60})
     age = models.PositiveSmallIntegerField(blank=True, null=True)
     gender = models.CharField(max_length=1, choices=Gender.choices, default=Gender.other)
 
