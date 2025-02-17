@@ -65,7 +65,7 @@ class Product(models.Model):
     category = models.ForeignKey(CategoryProduct, on_delete=models.CASCADE, related_name='products')
     color = models.ManyToManyField(ColorProduct, related_name='products')
     size = models.ManyToManyField(SizeProduct, related_name='products')
-    is_public = models.BooleanField(default=True)
+    is_published = models.BooleanField(default=True)
     is_delete = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
