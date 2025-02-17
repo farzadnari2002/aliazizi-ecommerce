@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'mptt',
     'colorfield',
     'autoslug',
+    'imagekit',
 ]
 
 MIDDLEWARE = [
