@@ -6,7 +6,9 @@ from mptt.models import MPTTModel, TreeForeignKey
 from autoslug import AutoSlugField
 from colorfield.fields import ColorField
 import uuid
-
+from utils.validators import validate_image_dimensions, validate_image_size
+from imagekit.models import ImageSpecField
+from imagekit.processors import ResizeToFill
 
 class CategoryProduct(MPTTModel):
     name = models.CharField(max_length=100, unique=True)
@@ -28,8 +30,15 @@ class ColorProduct(models.Model):
         return self.name
 
 
-def get_upload_to(instance):
-        return f'products/{instance.slug}'
+class SizeProduct(models.Model):
+    size = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.size
+
+
+def get_upload_to(instance, filename):
+        return f'products/{instance}/{filename}'
 
 
 class ImagesProduct(models.Model):
@@ -45,13 +54,17 @@ class Product(models.Model):
     slug = AutoSlugField(populate_from='name', unique=True, editable=False)
     tags = TaggableManager()
     sku = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='products')
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    main_image = models.ImageField(upload_to=get_upload_to)
+    image = models.ImageField(upload_to=get_upload_to, validators=[validate_image_size, validate_image_dimensions])
+    image_thumbnail = ImageSpecField(source='image',
+                                      processors=[ResizeToFill(100, 100)],
+                                      format='JPEG',
+                                      options={'quality': 60})
     short_desc = models.CharField(max_length=255)
     description = models.TextField()
     category = models.ForeignKey(CategoryProduct, on_delete=models.CASCADE, related_name='products')
     color = models.ManyToManyField(ColorProduct, related_name='products')
+    size = models.ManyToManyField(SizeProduct, related_name='products')
     is_public = models.BooleanField(default=True)
     is_delete = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
