@@ -43,7 +43,11 @@ def get_upload_to(instance, filename):
 
 class ImagesProduct(models.Model):
     product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to=get_upload_to)
+    image = models.ImageField(upload_to=get_upload_to, validators=[validate_image_size, validate_image_dimensions])
+    image_thumbnail = ImageSpecField(source='image',
+                                      processors=[ResizeToFill(120, 120)],
+                                      format='JPEG',
+                                      options={'quality': 80})
 
     def __str__(self):
         return f'image: {self.product}'
@@ -57,9 +61,9 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     image = models.ImageField(upload_to=get_upload_to, validators=[validate_image_size, validate_image_dimensions])
     image_thumbnail = ImageSpecField(source='image',
-                                      processors=[ResizeToFill(100, 100)],
+                                      processors=[ResizeToFill(120, 120)],
                                       format='JPEG',
-                                      options={'quality': 60})
+                                      options={'quality': 80})
     short_desc = models.CharField(max_length=255)
     description = models.TextField()
     category = models.ForeignKey(CategoryProduct, on_delete=models.CASCADE, related_name='products')
@@ -80,7 +84,7 @@ class Product(models.Model):
 class SpecificationsProduct(models.Model):
     title = models.CharField(max_length=100)
     desc = models.TextField(validators=[MaxLengthValidator(300)])
-    product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name='specifications')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='specifications')
 
     def __str__(self):
         return self.title
@@ -96,3 +100,6 @@ class CommentProduct(models.Model):
 
     def __str__(self):
         return f'comment: {self.user} - {self.product}'
+    
+    def count_rating(self):
+        return self.product.comments.count()
