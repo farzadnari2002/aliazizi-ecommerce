@@ -35,6 +35,24 @@ class User(AbstractBaseUser, PermissionsMixin):
             return f"{self.first_name.capitalize()} {self.last_name.capitalize()}"
         return ""
 
+    def mask_number(self):
+        return f"+98{str(self.number)[2:4]}{'*' * 5}{str(self.number)[-2:]}"
+    
+    def mask_email(self):
+        email = self.email
+        return f"{email[:3]}{'*' * 4}@{'*' * 3}"
+
+    def mask_contact_info(self):
+        if self.full_name():
+            return self.full_name()
+        if self.email:
+            return self.mask_email()
+        if self.number:
+            return self.mask_number()
+        return "unknown"
+        
+
+
     def __str__(self):
         full_name = self.full_name()
         return f"{full_name.strip()} ({self.number or self.email})".strip()
@@ -65,9 +83,9 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     avatar = models.ImageField(upload_to=get_upload_to, validators=[validate_image_size, validate_image_dimensions])
     avatar_thumbnail = ImageSpecField(source='avatar',
-                                      processors=[ResizeToFill(100, 100)],
+                                      processors=[ResizeToFill(120, 120)],
                                       format='JPEG',
-                                      options={'quality': 60})
+                                      options={'quality': 80})
     age = models.PositiveSmallIntegerField(blank=True, null=True)
     gender = models.CharField(max_length=1, choices=Gender.choices, default=Gender.other)
 
