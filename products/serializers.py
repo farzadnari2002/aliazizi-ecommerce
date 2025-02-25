@@ -67,3 +67,17 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'color', 'size', 'avg_rating',
             'images', 'specifications', 'comments'
         )
+
+
+class RecursiveField(serializers.Serializer):
+    def to_representation(self, value):
+        serializer = self.parent.parent.__class__(value, context=self.context)
+        return serializer.data
+
+class CategorySerializer(serializers.ModelSerializer):
+    children = RecursiveField(many=True)
+    parent = serializers.StringRelatedField()
+    parent_id = serializers.IntegerField(required=False)
+    class Meta:
+        model = CategoryProduct
+        fields = ('children', 'name', 'slug', 'parent', 'parent_id')
