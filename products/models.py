@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 from django.core.validators import MaxLengthValidator, MinLengthValidator
 from accounts.models import User
 from taggit.managers import TaggableManager
@@ -59,18 +61,24 @@ class Product(models.Model):
     tags = TaggableManager()
     sku = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    
     image = models.ImageField(upload_to=get_upload_to, validators=[validate_image_size, validate_image_dimensions])
     image_thumbnail = ImageSpecField(source='image',
                                       processors=[ResizeToFill(120, 120)],
                                       format='JPEG',
                                       options={'quality': 80})
+    
     short_desc = models.CharField(max_length=255)
     description = models.TextField()
+    like_count = models.PositiveIntegerField(default=0, editable=False)
+    view_count = models.PositiveIntegerField(default=0, editable=False)
     category = models.ForeignKey(CategoryProduct, on_delete=models.CASCADE, related_name='products')
     color = models.ManyToManyField(ColorProduct, related_name='products')
     size = models.ManyToManyField(SizeProduct, related_name='products')
+    
     is_published = models.BooleanField(default=True)
     is_delete = models.BooleanField(default=False)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -79,6 +87,15 @@ class Product(models.Model):
     
     def avg_rating(self):
         return self.comments.aggregate(models.Avg('rating'))['rating__avg']
+
+
+class LikeProduct(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='likes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'like: {self.user} - {self.product}'
 
 
 class SpecificationsProduct(models.Model):
@@ -103,3 +120,15 @@ class CommentProduct(models.Model):
     
     def count_rating(self):
         return self.product.comments.count()
+
+
+@receiver(post_save, sender=LikeProduct)
+def update_like_count(sender, instance, **kwargs):
+    instance.product.like_count += 1
+    instance.product.save()
+
+
+@receiver(post_delete, sender=LikeProduct)
+def update_like_count(sender, instance, **kwargs):
+    instance.product.like_count -= 1
+    instance.product.save()
