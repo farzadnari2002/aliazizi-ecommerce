@@ -64,7 +64,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         fields = (
             'name', 'slug', 'price', 'image',
             'short_desc', 'description', 'category',
-            'color', 'size', 'avg_rating',
+            'color', 'size', 'avg_rating', 'like_count',
             'images', 'specifications', 'comments'
         )
 
