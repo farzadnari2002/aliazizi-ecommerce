@@ -81,3 +81,7 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = CategoryProduct
         fields = ('children', 'name', 'slug', 'parent', 'parent_id')
+
+
+class FavoriteProductSerializer(serializers.Serializer):
+    product_slug = serializers.SlugField()
