@@ -4,7 +4,7 @@ from . import models
 
 
 admin.site.register(models.Product)
-admin.site.register(models.LikeProduct)
+admin.site.register(models.FavoriteProduct)
 admin.site.register(models.ColorProduct)
 admin.site.register(models.SizeProduct)
 admin.site.register(models.ImagesProduct)
