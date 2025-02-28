@@ -30,6 +30,10 @@ class ColorProduct(models.Model):
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        verbose_name = 'Color Product'
+        verbose_name_plural = 'Colors Products'
 
 
 class SizeProduct(models.Model):
@@ -37,6 +41,10 @@ class SizeProduct(models.Model):
 
     def __str__(self):
         return self.size
+    
+    class Meta:
+        verbose_name = 'Size Product'
+        verbose_name_plural = 'Sizes Products'
 
 
 def get_upload_to(instance, filename):
@@ -53,6 +61,10 @@ class ImagesProduct(models.Model):
 
     def __str__(self):
         return f'image: {self.product}'
+    
+    class Meta:
+        verbose_name = 'Image Product'
+        verbose_name_plural = 'Images Products'
 
 
 class Product(models.Model):
@@ -87,15 +99,24 @@ class Product(models.Model):
     
     def avg_rating(self):
         return self.comments.aggregate(models.Avg('rating'))['rating__avg']
+    
+    class Meta:
+        verbose_name = 'Product'
+        verbose_name_plural = 'Products'
 
 
-class LikeProduct(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='likes')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes')
+class FavoriteProduct(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='favorites')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorites')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f'like: {self.user} - {self.product}'
+    
+    class Meta:
+        unique_together = ['product', 'user']
+        verbose_name = 'Favorite Product'
+        verbose_name_plural = 'Favorite Products'
 
 
 class SpecificationsProduct(models.Model):
@@ -105,6 +126,10 @@ class SpecificationsProduct(models.Model):
 
     def __str__(self):
         return self.title
+    
+    class Meta:
+        verbose_name = 'Specification Product'
+        verbose_name_plural = 'Specifications Products'
 
 
 class CommentProduct(models.Model):
@@ -120,15 +145,19 @@ class CommentProduct(models.Model):
     
     def count_rating(self):
         return self.product.comments.count()
+    
+    class Meta:
+        verbose_name = 'Comment Product'
+        verbose_name_plural = 'Comment Products'
 
 
-@receiver(post_save, sender=LikeProduct)
+@receiver(post_save, sender=FavoriteProduct)
 def update_like_count(sender, instance, **kwargs):
     instance.product.like_count += 1
     instance.product.save()
 
 
-@receiver(post_delete, sender=LikeProduct)
+@receiver(post_delete, sender=FavoriteProduct)
 def update_like_count(sender, instance, **kwargs):
     instance.product.like_count -= 1
     instance.product.save()
