@@ -1,13 +1,13 @@
 from rest_framework.views import APIView
-from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework import status
-from products.serializers import ProductsListSerializer, ProductDetailSerializer, CategorySerializer
+from products.serializers import ProductsListSerializer, ProductDetailSerializer, CategorySerializer, FavoriteProductSerializer
 from rest_framework.permissions import IsAuthenticated
-from products.models import Product, CategoryProduct, LikeProduct
+from products.models import Product, CategoryProduct, FavoriteProduct
 from django.shortcuts import get_list_or_404
-from django.core.cache import cache
-from django.utils import timezone
+from django_ratelimit.decorators import ratelimit
+from django.utils.decorators import method_decorator
+
 
 
 class ProductsListView(APIView):
@@ -38,30 +38,27 @@ class CategoriesListView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class LikeProductView(ViewSet):
+@method_decorator(ratelimit(key='user', rate='5/m', method='POST', block=True), name='dispatch')
+class FavoriteProductView(APIView):
     permission_classes = [IsAuthenticated]
-    lookup_field = 'product_slug'
+    serializer_class = FavoriteProductSerializer
 
-    def like_product(self, request, product_slug):
-        try:
-            product = Product.objects.get(slug=product_slug, is_published=True, is_delete=False)
-        except Product.DoesNotExist:
-            return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+
+        if serializer.is_valid():
+            data = serializer.validated_data
+            product = get_list_or_404(Product, slug=data['product_slug'], is_published=True, is_delete=False)
+
+            like, created = FavoriteProduct.objects.get_or_create(user=request.user, product_id=product[0].id)  
+
+            if created:
+                action = 'liked'
+            else:
+                like.delete()
+                action = 'unliked'
+
+            return Response({"message": f"You have {action} this product."}, status=status.HTTP_200_OK)
         
-        cooldown_time = 10
-        user_key = f"like_cooldown_{request.user.id}_{product.id}"
-        last_action_time = cache.get(user_key)
-
-        if last_action_time and (timezone.now() - last_action_time).seconds < cooldown_time:
-            return Response({'error': 'Please wait before liking again.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
-
-        like, created = product.likes.get_or_create(user=request.user)  
-
-        if created:
-            action = 'liked'
-        else:
-            like.delete()
-            action = 'unliked'
-        
-        cache.set(user_key, timezone.now(), timeout=cooldown_time)
-        return Response({"message": f"You have {action} this product."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
