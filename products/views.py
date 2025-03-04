@@ -1,12 +1,18 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from products.serializers import ProductsListSerializer, ProductDetailSerializer, CategorySerializer, FavoriteProductSerializer
 from rest_framework.permissions import IsAuthenticated
-from products.models import Product, CategoryProduct, FavoriteProduct
+from products.models import Product, CategoryProduct, FavoriteProduct, VoteComment
 from django.shortcuts import get_list_or_404
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
+from products.serializers import (
+    ProductsListSerializer,
+    ProductDetailSerializer,
+    CategorySerializer,
+    FavoriteProductSerializer,
+    VoteCommentSerializer
+)
 
 
 
@@ -61,4 +67,23 @@ class FavoriteProductView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
+class VoteCommentView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = VoteCommentSerializer
 
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+
+        if serializer.is_valid():
+            data = serializer.validated_data
+            result = VoteComment.toggle_vote(comment_id=data['comment_id'], user=request.user, vote_type=data['vote_type'])
+
+            message = {
+                "VOTE_REGISTERED": "Your vote has been registered.",
+                "VOTE_REMOVED": "Your vote has been removed.",
+                "VOTE_CHANGED": "Your vote has been changed.",
+                "COMMENT_NOT_FOUND": "Comment not found"
+            }.get(result, "Unexpected result.")
+
+            return Response({"message": message}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
