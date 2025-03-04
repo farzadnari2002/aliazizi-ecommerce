@@ -137,11 +137,11 @@ class CommentProduct(models.Model):
     rating = models.PositiveSmallIntegerField(validators=[MinLengthValidator(1), MaxLengthValidator(5)])
     created_at = models.DateTimeField(auto_now_add=True)
     is_public = models.BooleanField(default=False)
-    like_count = models.PositiveIntegerField(default=0)
-    dislike_count = models.PositiveIntegerField(default=0)
+    likes_count = models.PositiveIntegerField(default=0)
+    dislikes_count = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return f'comment: {self.user} - {self.product}'
+        return f'comment by {self.user} on {self.product}'
     
     class Meta:
         verbose_name = 'Comment Product'
@@ -149,17 +149,65 @@ class CommentProduct(models.Model):
 
 
 class VoteComment(models.Model):
-    class Vote_Type(models.TextChoices):
-        LIKE = 'like'
-        DISLIKE = 'dislike'
+    class VoteType(models.TextChoices):
+        LIKE = 'like', 'Like'
+        DISLIKE = 'dislike', 'Dislike'
 
-    comment = models.ForeignKey(CommentProduct, on_delete=models.CASCADE, related_name='likes')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes')
-    vote_type = models.CharField(max_length=7, choices=Vote_Type)
+    comment = models.ForeignKey(CommentProduct, on_delete=models.CASCADE, related_name='votes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='votes')
+    vote_type = models.CharField(max_length=7, choices=VoteType)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def toggle_vote(cls, comment_id, user, vote_type):
+        # Find comment
+        try:
+            comment = CommentProduct.objects.get(id=comment_id)
+        except CommentProduct.DoesNotExist:
+            return "COMMENT_NOT_FOUND"
+
+        # Check if the user has already voted on the comment
+        existing_vote, created = cls.objects.get_or_create(comment=comment, user=user)
+
+        if created:
+            # New vote has been registered
+            existing_vote.vote_type = vote_type
+            existing_vote.save()
+
+            if vote_type == cls.VoteType.LIKE:
+                comment.likes_count += 1
+            else: 
+                comment.dislikes_count += 1
+
+            comment.save()
+            return "VOTE_REGISTERED"
+        else:
+            # Existing vote found
+            if existing_vote.vote_type == vote_type:
+                # Remove duplicate vote
+                if vote_type == cls.VoteType.LIKE:
+                    comment.likes_count -= 1
+                else:
+                    comment.dislikes_count -= 1
+                existing_vote.delete()
+                comment.save()
+                return "VOTE_REMOVED"
+            else:
+                # Change the existing vote
+                if vote_type == cls.VoteType.LIKE:
+                    comment.likes_count += 1
+                    comment.dislikes_count -= 1
+                else:
+                    comment.dislikes_count += 1
+                    comment.likes_count -= 1
+                existing_vote.vote_type = vote_type
+                existing_vote.save()
+                comment.save()
+                return "VOTE_CHANGED"
 
     def __str__(self):
-        return f'{self.vote_type}: {self.user} - {self.comment}'
+        return f'{self.vote_type}: {self.comment}'
     
     class Meta:
         unique_together = ['comment', 'user']
