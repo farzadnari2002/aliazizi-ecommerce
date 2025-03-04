@@ -6,6 +6,7 @@ from .models import (
     ImagesProduct,
     SpecificationsProduct,
     CommentProduct,
+    VoteComment,
 )
 
 # Serializers for Images
@@ -85,3 +86,13 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class FavoriteProductSerializer(serializers.Serializer):
     product_slug = serializers.SlugField()
+
+
+class VoteCommentSerializer(serializers.Serializer):
+    comment_id = serializers.IntegerField()
+    vote_type = serializers.ChoiceField(choices=VoteComment.VoteType.choices)
+
+    def validate_comment_id(self, value):
+        if 1 > value :
+            raise serializers.ValidationError("Comment ID must be greater than 0.")
+        return value
