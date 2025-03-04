@@ -1,6 +1,4 @@
 from django.db import models
-from django.db.models.signals import post_save, post_delete
-from django.dispatch import receiver
 from django.core.validators import MaxLengthValidator, MinLengthValidator
 from accounts.models import User
 from taggit.managers import TaggableManager
@@ -82,8 +80,8 @@ class Product(models.Model):
     
     short_desc = models.CharField(max_length=255)
     description = models.TextField()
-    like_count = models.PositiveIntegerField(default=0, editable=False)
-    view_count = models.PositiveIntegerField(default=0, editable=False)
+    favorites_count = models.PositiveIntegerField(default=0, editable=False)
+    comment_count = models.PositiveIntegerField(default=0, editable=False)
     category = models.ForeignKey(CategoryProduct, on_delete=models.CASCADE, related_name='products')
     color = models.ManyToManyField(ColorProduct, related_name='products')
     size = models.ManyToManyField(SizeProduct, related_name='products')
@@ -139,25 +137,31 @@ class CommentProduct(models.Model):
     rating = models.PositiveSmallIntegerField(validators=[MinLengthValidator(1), MaxLengthValidator(5)])
     created_at = models.DateTimeField(auto_now_add=True)
     is_public = models.BooleanField(default=False)
+    like_count = models.PositiveIntegerField(default=0)
+    dislike_count = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f'comment: {self.user} - {self.product}'
-    
-    def count_rating(self):
-        return self.product.comments.count()
     
     class Meta:
         verbose_name = 'Comment Product'
         verbose_name_plural = 'Comment Products'
 
 
-@receiver(post_save, sender=FavoriteProduct)
-def update_like_count(sender, instance, **kwargs):
-    instance.product.like_count += 1
-    instance.product.save()
+class VoteComment(models.Model):
+    class Vote_Type(models.TextChoices):
+        LIKE = 'like'
+        DISLIKE = 'dislike'
 
+    comment = models.ForeignKey(CommentProduct, on_delete=models.CASCADE, related_name='likes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes')
+    vote_type = models.CharField(max_length=7, choices=Vote_Type)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-@receiver(post_delete, sender=FavoriteProduct)
-def update_like_count(sender, instance, **kwargs):
-    instance.product.like_count -= 1
-    instance.product.save()
+    def __str__(self):
+        return f'{self.vote_type}: {self.user} - {self.comment}'
+    
+    class Meta:
+        unique_together = ['comment', 'user']
+        verbose_name = 'Like and DisLike Comment'
+        verbose_name_plural = 'Like and DisLike Comments'
