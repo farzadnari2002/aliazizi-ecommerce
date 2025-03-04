@@ -161,3 +161,5 @@ REST_FRAMEWORK = {
     )
 }
 
+
+RATELIMIT_USE_CACHE = 'default'
