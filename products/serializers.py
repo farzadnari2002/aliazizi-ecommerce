@@ -40,7 +40,7 @@ class CommentProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CommentProduct
-        fields = ('username', 'rating', 'comment', 'avatar_thumbnail', 'count_rating')
+        fields = ('username', 'rating', 'comment', 'avatar_thumbnail')
 
 # Serializers for Product Listings
 class ProductsListSerializer(serializers.ModelSerializer):
@@ -64,7 +64,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         fields = (
             'name', 'slug', 'price', 'image',
             'short_desc', 'description', 'category',
-            'color', 'size', 'avg_rating', 'like_count',
+            'color', 'size', 'avg_rating', 'favorites_count',
             'images', 'specifications', 'comments'
         )
 
