@@ -10,6 +10,7 @@ admin.site.register(models.SizeProduct)
 admin.site.register(models.ImagesProduct)
 admin.site.register(models.SpecificationsProduct)
 admin.site.register(models.CommentProduct)
+admin.site.register(models.VoteComment)
 admin.site.register(
     models.CategoryProduct,
     DraggableMPTTAdmin,
