@@ -38,7 +38,7 @@ class CategoriesListView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-@method_decorator(ratelimit(key='user', rate='5/m', method='POST', block=True), name='dispatch')
+@method_decorator(ratelimit(key='user', rate='5/s', method='POST', block=True), name='dispatch')
 class FavoriteProductView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = FavoriteProductSerializer
@@ -52,13 +52,13 @@ class FavoriteProductView(APIView):
 
             like, created = FavoriteProduct.objects.get_or_create(user=request.user, product_id=product[0].id)  
 
-            if created:
-                action = 'liked'
-            else:
+            action = 'added to favorite' if created else 'removed from favorite' 
+            if not created:
                 like.delete()
-                action = 'unliked'
 
             return Response({"message": f"You have {action} this product."}, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+
+
