@@ -1,5 +1,5 @@
 from django.db import models
-from django.core.validators import MaxLengthValidator, MinLengthValidator
+from django.core.validators import MaxLengthValidator, MaxValueValidator, MinValueValidator
 from accounts.models import User
 from taggit.managers import TaggableManager
 from mptt.models import MPTTModel, TreeForeignKey
@@ -9,6 +9,8 @@ import uuid
 from utils.validators import validate_image_dimensions, validate_image_size
 from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFill
+from django.core.exceptions import ValidationError
+
 
 class CategoryProduct(MPTTModel):
     name = models.CharField(max_length=100, unique=True)
@@ -81,7 +83,7 @@ class Product(models.Model):
     short_desc = models.CharField(max_length=255)
     description = models.TextField()
     favorites_count = models.PositiveIntegerField(default=0, editable=False)
-    comment_count = models.PositiveIntegerField(default=0, editable=False)
+    comments_count = models.PositiveIntegerField(default=0, editable=False)
     category = models.ForeignKey(CategoryProduct, on_delete=models.CASCADE, related_name='products')
     color = models.ManyToManyField(ColorProduct, related_name='products')
     size = models.ManyToManyField(SizeProduct, related_name='products')
@@ -134,14 +136,27 @@ class CommentProduct(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
     comment = models.TextField()
-    rating = models.PositiveSmallIntegerField(validators=[MinLengthValidator(1), MaxLengthValidator(5)])
+    rating = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     created_at = models.DateTimeField(auto_now_add=True)
-    is_public = models.BooleanField(default=False)
-    likes_count = models.PositiveIntegerField(default=0)
-    dislikes_count = models.PositiveIntegerField(default=0)
+    is_published = models.BooleanField(default=False)
+    likes_count = models.PositiveIntegerField(default=0, editable=False)
+    dislikes_count = models.PositiveIntegerField(default=0, editable=False)
+    parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies') 
 
     def __str__(self):
         return f'comment by {self.user} on {self.product}'
+    
+    def clean(self):
+        if self.parent_comment:
+            if self.product != self.parent_comment.product:
+                raise ValidationError("Product must be the same as the parent comment.")
+
+            if self.parent_comment.parent_comment:
+                raise ValidationError("Cannot reply to a reply.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
     
     class Meta:
         verbose_name = 'Comment Product'
