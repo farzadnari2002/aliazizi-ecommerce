@@ -11,7 +11,8 @@ from products.serializers import (
     ProductDetailSerializer,
     CategorySerializer,
     FavoriteProductSerializer,
-    VoteCommentSerializer
+    VoteCommentSerializer,
+    CommentProductSerializer
 )
 
 
@@ -67,6 +68,7 @@ class FavoriteProductView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
+@method_decorator(ratelimit(key='user', rate='5/s', method='POST', block=True), name='dispatch')
 class VoteCommentView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = VoteCommentSerializer
@@ -87,3 +89,15 @@ class VoteCommentView(APIView):
 
             return Response({"message": message}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProductCommentsView(APIView):
+    serializer_class = CommentProductSerializer
+
+    def get(self, request, slug):
+        product = get_list_or_404(Product, slug=slug, is_published=True)
+
+        comments = product[0].comments.filter(is_published=True, parent_comment__isnull=True).order_by('-created_at')
+
+        serializer = self.serializer_class(comments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
