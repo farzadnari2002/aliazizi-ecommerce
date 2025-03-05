@@ -18,12 +18,12 @@ def decrement_favorites_count(sender, instance, **kwargs):
 # Comments Logic
 @receiver(post_save, sender=CommentProduct)
 def increment_comment_count(sender, instance, **kwargs):
-    instance.product.comment_count += 1
+    instance.product.comments_count += 1
     instance.product.save()
 
 @receiver(post_delete, sender=CommentProduct)
 def decrement_comment_count(sender, instance, **kwargs):
-    instance.product.comment_count -= 1
+    instance.product.comments_count -= 1
     instance.product.save()
 
 
