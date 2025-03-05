@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db.models import Count
 from .models import (
     Product,
     CategoryProduct,
@@ -38,10 +39,20 @@ class SpecificationsProductSerializer(serializers.ModelSerializer):
 class CommentProductSerializer(serializers.ModelSerializer):
     username = serializers.StringRelatedField(source='user.mask_contact_info', read_only=True)
     avatar_thumbnail = serializers.ImageField(source='user.userprofile.avatar_thumbnail', read_only=True)
+    replies = serializers.SerializerMethodField()
 
     class Meta:
         model = CommentProduct
-        fields = ('username', 'rating', 'comment', 'avatar_thumbnail')
+        fields = ('id', 'username', 'rating', 'comment', 'avatar_thumbnail',
+                  'likes_count', 'dislikes_count', 'created_at', 'replies')
+    
+    def get_replies(self, obj):
+        replies = (obj.replies
+                   .prefetch_related('user', 'user__userprofile')
+                   .filter(is_published=True)
+                   .order_by('-created_at'))
+        return CommentProductSerializer(replies, many=True).data
+
 
 # Serializers for Product Listings
 class ProductsListSerializer(serializers.ModelSerializer):
@@ -58,7 +69,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     size = serializers.StringRelatedField(many=True)
     images = ImagesProductSerializer(many=True)
     specifications = SpecificationsProductSerializer(many=True)
-    comments = CommentProductSerializer(many=True)
+    comments = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -66,8 +77,15 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'name', 'slug', 'price', 'image',
             'short_desc', 'description', 'category',
             'color', 'size', 'avg_rating', 'favorites_count',
-            'images', 'specifications', 'comments'
+            'images', 'specifications', 'comments_count', 'comments'
         )
+
+    def get_comments(self, obj):
+        comments = (obj.comments
+                    .prefetch_related('user', 'user__userprofile')
+                    .filter(is_published=True).exclude('replies')
+                    .order_by('id')[:3])
+        return CommentProductSerializer(comments, many=True).data
 
 
 class RecursiveField(serializers.Serializer):
