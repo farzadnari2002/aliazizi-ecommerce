@@ -92,18 +92,15 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         return CommentsSerializer(comments, many=True).data
 
 
-class RecursiveField(serializers.Serializer):
-    def to_representation(self, value):
-        serializer = self.parent.parent.__class__(value, context=self.context)
-        return serializer.data
-
+# Serializer for Category
 class CategorySerializer(serializers.ModelSerializer):
-    children = RecursiveField(many=True)
-    parent = serializers.StringRelatedField()
-    parent_id = serializers.IntegerField(required=False)
+    children = serializers.SerializerMethodField()
     class Meta:
         model = CategoryProduct
-        fields = ('children', 'name', 'slug', 'parent', 'parent_id')
+        fields = ['id', 'name', 'slug', 'parent', 'children']
+
+    def get_children(self, obj):
+        return CategorySerializer(obj.get_children(), many=True).data
 
 
 class FavoriteProductSerializer(serializers.Serializer):
