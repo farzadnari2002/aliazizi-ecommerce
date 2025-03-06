@@ -12,7 +12,6 @@ from products.serializers import (
     CategorySerializer,
     FavoriteProductSerializer,
     VoteCommentSerializer,
-    CommentsSerializer,
     CommentsAndRepliesSerializer
 )
 
@@ -40,7 +39,7 @@ class CategoriesListView(APIView):
     serializer_class = CategorySerializer
 
     def get(self, request):
-        category = CategoryProduct.objects.all()
+        category = CategoryProduct.objects.filter(parent=None)
         serializer = self.serializer_class(category, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
