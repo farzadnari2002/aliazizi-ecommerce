@@ -12,7 +12,8 @@ from products.serializers import (
     CategorySerializer,
     FavoriteProductSerializer,
     VoteCommentSerializer,
-    CommentProductSerializer
+    CommentsSerializer,
+    CommentsAndRepliesSerializer
 )
 
 
@@ -92,7 +93,7 @@ class VoteCommentView(APIView):
 
 
 class ProductCommentsView(APIView):
-    serializer_class = CommentProductSerializer
+    serializer_class = CommentsAndRepliesSerializer
 
     def get(self, request, slug):
         product = get_list_or_404(Product, slug=slug, is_published=True)
