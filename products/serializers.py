@@ -36,22 +36,29 @@ class SpecificationsProductSerializer(serializers.ModelSerializer):
         fields = ('title', 'desc')
 
 # Serializers for Comments
-class CommentProductSerializer(serializers.ModelSerializer):
+class CommentsSerializer(serializers.ModelSerializer):
     username = serializers.StringRelatedField(source='user.mask_contact_info', read_only=True)
     avatar_thumbnail = serializers.ImageField(source='user.userprofile.avatar_thumbnail', read_only=True)
+
+    class Meta:
+        model = CommentProduct
+        fields = ['id', 'username', 'rating', 'comment', 'avatar_thumbnail',
+                  'likes_count', 'dislikes_count', 'created_at']
+
+
+class CommentsAndRepliesSerializer(CommentsSerializer):
     replies = serializers.SerializerMethodField()
 
     class Meta:
         model = CommentProduct
-        fields = ('id', 'username', 'rating', 'comment', 'avatar_thumbnail',
-                  'likes_count', 'dislikes_count', 'created_at', 'replies')
-    
+        fields = CommentsSerializer.Meta.fields + ['replies']
+
     def get_replies(self, obj):
         replies = (obj.replies
                    .prefetch_related('user', 'user__userprofile')
                    .filter(is_published=True)
                    .order_by('-created_at'))
-        return CommentProductSerializer(replies, many=True).data
+        return CommentsSerializer(replies, many=True).data
 
 
 # Serializers for Product Listings
@@ -81,11 +88,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         )
 
     def get_comments(self, obj):
-        comments = (obj.comments
-                    .prefetch_related('user', 'user__userprofile')
-                    .filter(is_published=True).exclude('replies')
-                    .order_by('id')[:3])
-        return CommentProductSerializer(comments, many=True).data
+        comments = obj.comments.filter(is_published=True).order_by('-likes_count')[:3]
+        return CommentsSerializer(comments, many=True).data
 
 
 class RecursiveField(serializers.Serializer):
