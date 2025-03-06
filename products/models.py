@@ -98,7 +98,8 @@ class Product(models.Model):
         return self.name
     
     def avg_rating(self):
-        return self.comments.aggregate(models.Avg('rating'))['rating__avg']
+        avg_rating = self.comments.aggregate(models.Avg('rating'))['rating__avg']
+        return round(avg_rating, 1)
     
     class Meta:
         verbose_name = 'Product'
