@@ -1,4 +1,5 @@
 from rest_framework.views import APIView
+from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -6,6 +7,8 @@ from products.models import Product, CategoryProduct, FavoriteProduct, VoteComme
 from django.shortcuts import get_list_or_404
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
+from .filters import ProductFilter
+from django_filters.rest_framework import DjangoFilterBackend
 from products.serializers import (
     ProductsListSerializer,
     ProductDetailSerializer,
@@ -16,14 +19,11 @@ from products.serializers import (
 )
 
 
-
-class ProductsListView(APIView):
+class ProductsListViewSet(viewsets.ModelViewSet):
+    queryset = Product.objects.filter(is_published=True, is_delete=False)
     serializer_class = ProductsListSerializer
-
-    def get(self, request):
-        products = Product.objects.filter(is_published=True, is_delete=False)
-        serializer = self.serializer_class(products, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = ProductFilter
 
 
 class ProductDetailView(APIView):
@@ -39,7 +39,7 @@ class CategoriesListView(APIView):
     serializer_class = CategorySerializer
 
     def get(self, request):
-        category = CategoryProduct.objects.filter(parent=None)
+        category = CategoryProduct.objects.filter(parent=None, is_active=True)
         serializer = self.serializer_class(category, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
