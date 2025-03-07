@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from django.db.models import Count
 from .models import (
     Product,
     CategoryProduct,
@@ -67,7 +66,7 @@ class ProductsListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ('name', 'slug', 'price', 'image_thumbnail', 'avg_rating')
+        fields = ('name', 'slug', 'price', 'image_thumbnail', 'favorites_count', 'avg_rating')
 
 # Serializer for Product Detail
 class ProductDetailSerializer(serializers.ModelSerializer):
