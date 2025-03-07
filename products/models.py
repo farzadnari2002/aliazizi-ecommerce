@@ -16,6 +16,7 @@ class CategoryProduct(MPTTModel):
     name = models.CharField(max_length=100, unique=True)
     slug = AutoSlugField(populate_from='name', unique=True)
     parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
+    is_active = models.BooleanField(default=True)
 
     class MPTTMeta:
         order_insertion_by = ['name']
@@ -83,6 +84,7 @@ class Product(models.Model):
     short_desc = models.CharField(max_length=255)
     description = models.TextField()
     favorites_count = models.PositiveIntegerField(default=0, editable=False)
+    avg_rating = models.DecimalField(max_digits=10, decimal_places=1)
     comments_count = models.PositiveIntegerField(default=0, editable=False)
     category = models.ForeignKey(CategoryProduct, on_delete=models.CASCADE, related_name='products')
     color = models.ManyToManyField(ColorProduct, related_name='products')
@@ -96,10 +98,6 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
-    
-    def avg_rating(self):
-        avg_rating = self.comments.aggregate(models.Avg('rating'))['rating__avg']
-        return round(avg_rating, 1)
     
     class Meta:
         verbose_name = 'Product'
