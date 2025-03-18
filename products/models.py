@@ -10,6 +10,7 @@ from utils.validators import validate_image_dimensions, validate_image_size
 from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFill
 from django.core.exceptions import ValidationError
+from django.contrib.postgres.search import SearchQuery, SearchVector, TrigramSimilarity, SearchRank
 
 
 class CategoryProduct(MPTTModel):
@@ -103,7 +104,7 @@ class Product(models.Model):
         verbose_name = 'Product'
         verbose_name_plural = 'Products'
 
-
+        
 class FavoriteProduct(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='favorites')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorites')
